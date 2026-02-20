@@ -1,9 +1,9 @@
-name: DANA UAT Automation
+name: DANA UAT Final Boss
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Memungkinkan lo jalanin manual dari tab Actions
+  workflow_dispatch:
 
 jobs:
   uat-test:
@@ -17,69 +17,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, xml, ctype, iconv, curl
           tools: composer:v2
 
       - name: Install System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb chromium-browser chromium-chromedriver default-jre
-          # Link chromedriver agar bisa dipanggil langsung oleh PHP
           sudo ln -s /usr/lib/chromium-browser/chromedriver /usr/local/bin/chromedriver || true
-
-      - name: Setup Credentials & Environment
-        run: |
-          # 1. Buat Private Key (Pastikan ini sesuai dengan key yang lo download dari dashboard)
-          cat <<EOF > private_key.pem
-          -----BEGIN RSA PRIVATE KEY-----
-          MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDmO1Gi7/L7e+sn
-          Ur21ik0UAvfN6ypBNqG8yd76TpZKU+F61zgxFJXD528zyXllKGUylTL7wp4O02mI
-          mWjRF3s2/tUkg/y03S3u2F1zIwf6gl8Sh4A1syq1SnNBuw/r5MF2z5yEiVDLMrZk
-          zS8liAMLoPHlxRNK9ax8Z6x0XkrXGk/mmXNW1kzBszUOaAo9bg2gYbLhxgmWj+33
-          atef6FcnnTl5DHwG5ftcyI6n0G6gw5J01nib4qtcJp0a2/oeL3VD/OyPhcuLa4K8
-          3ERs2e+6jsXtmYMnjqbSFoLZjkkCmNyO21vwtAQEd0oqgEY13TH11lJrHCdoeSmf
-          3t1h4p3JAgMBAAECggEAIkDoE/RcM9NLeLXEONrDPft1D+NxjXNJ2/My5A3GKXfS
-          X7rehtrXr2Zi8pMCpyy75asyAygA6RbGKEcew6EZOWTvpDeo5OXVXCg/uw4WtUwp
-          RfH3/sVR0NgrTre8li2aJQmdcVCWvyyj21p1rcFPJq9C3hsUlD359CZej4+p1dex
-          lpGLnABxLO2rUzbLKZ5U4eN6CjaAOIAzkKBVEzuz4rRQt1FY0Zkcxz6p1bln22Dj
-          rwadVKP8/48PEvSICmxSlKicaR+ajgL5ZoOB5mgpolvZc72p7V3K1Ueh4O7dmRiT
-          Azt5rIkvx8OHRWmxtBxuLOwNTO+5cvvDbVjpgfqcyQKBgQD0hQAWJuWuFbk41ND9
-          58txuCoR7zCoB/OK/sSVVsFFLIuaHrFD2mVnQJk/5m9VF0FHnOpBjKn0dElLmw+L
-          WQFIlvL+J+VVU2rxSuE2aBm8x7e4F6NaF7RK86ugOhNm/XL6jCY6J1BKXljQ2v8C
-          7ESpnQVULntF2xksqxyY61kj1QKBgQDxCpYXMKW/tDzgYnCWdvdVhk2ARKfhKBmb
-          wJxXpHyXziQiZtANBmvNCOpEkkV6MA0uFU/2OqA8Cz3hiLxTSEni+nx3mC9nHntG
-          A8cIWYbYACAj1c0NviQ1iNcNTIHx1vyvkQlcVc4nqK8V+d/88TEHEiUYadbJJIhs
-          WnmmVOawJQKBgG8WVXm65jH2sJV/KguQWT8q2gIX1tUf96c4I3ttVJTmre2w7/vR
-          pqwIDxeWyxGvZPrx8QMisrvacMomgiNeplSiL3cEDQ58vWMuD682ECtR2MeMBayS
-          hFhg56H9gH8Tuj7VmTBmV/XRcyw/sgdT68XbDma2T07nQUKn4nAey/qZAoGAHzQj
-          ofTmQB7xEosr0A6ujh/IwKYipX8vcX5Jvv7IMk65VsrAfC8snWpeCWp2HA9EZYbU
-          xydnvt4lsKCm4JEnH38VxdWprUvA4ZtzlJ0iW6wIfRscZH8M6PFCBbK1z7zpEUFR
-          WOayvWeU4t9qI7CFjEjJDJQG/hsAniZIQUQUaRECgYBsuKhVo01nmRmrhqzWGbTw
-          3gFyEHbaaUGjRlVz/9D23iiOgWMq5H2wN++70RVdMdsV1MLWYAaSWWWrfQmI3sIC
-          +f14ozQw3jhaxFfND9IA44yzLpSU1+BwrVniPW0OchZzXskylRKsqhhkP9cHn3Z/
-          RMD/d/LTLDNvHcaULQz3SQ==
-          -----END RSA PRIVATE KEY-----
-          EOF
-
-          # 2. Definisikan Path Absolut & Data dari Screenshot
-          ABS_PATH=$(pwd)
-          
-          # 3. Buat file .env
-          cat <<EOF > .env
-          MERCHANT_ID=216620020014045559303
-          X_PARTNER_ID=2026021421181946563086
-          CLIENT_ID=2026021421181946563086
-          CLIENT_SECRET=PASTI_ADA_DI_DOWNLOAD_JSON_LO # Jangan lupa ganti jika beda
-          EXTERNAL_SHOP_ID=216660000003269467312
-          ORIGIN=payment.ojgrup.com
-          ENV_TYPE=sandbox
-          PRIVATE_KEY_PATH=$ABS_PATH/private_key.pem
-          SELENIUM_URL=http://localhost:4444/wd/hub
-          EOF
-
-          # 4. Copy ke semua subfolder test yang mungkin diakses
-          find . -type d -name "php" -exec cp .env {}/.env \;
-          find . -type d -name "php" -exec cp private_key.pem {}/private_key.pem \;
 
       - name: Install Composer Dependencies
         run: |
@@ -87,28 +31,53 @@ jobs:
           cd "$TEST_PHP_DIR"
           composer install --no-interaction --prefer-dist
 
+      - name: Force Inject & Mock Webhook
+        run: |
+          # 1. Data dari Dashboard Lo
+          MERCHANT_ID="216620020014045559303"
+          CLIENT_ID="2026021421181946563086"
+          CLIENT_SECRET="58439bb51430dd3ea566ae59ff7096d1c8753fe70fa6c4728acbc2bcea2a106e" 
+          RAW_KEY="MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDmO1Gi7/L7e+snUr21ik0UAvfN6ypBNqG8yd76TpZKU+F61zgxFJXD528zyXllKGUylTL7wp4O02miWjRF3s2/tUkg/y03S3u2F1zIwf6gl8Sh4A1syq1SnNBuw/r5MF2z5yEiVDLMrZkzS8liAMLoPHlxRNK9ax8Z6x0XkrXGk/mmXNW1kzBszUOaAo9bg2gYbLhxgmWj+33atef6FcnnTl5DHwG5ftcyI6n0G6gw5J01nib4qtcJp0a2/oeL3VD/OyPhcuLa4K83ERs2e+6jsXtmYMnjqbSFoLZjkkCmNyO21vwtAQEd0oqgEY13TH11lJrHCdoeSmf3t1h4p3JAgMBAAECggEAIkDoE/RcM9NLeLXEONrDPft1D+NxjXNJ2/My5A3GKXfSX7rehtrXr2Zi8pMCpyy75asyAygA6RbGKEcew6EZOWTvpDeo5OXVXCg/uw4WtUwpRfH3/sVR0NgrTre8li2aJQmdcVCWvyyj21p1rcFPJq9C3hsUlD359CZej4+p1dexpLGLnABxLO2rUzbLKZ5U4eN6CjaAOIAzkKBVEzuz4rRQt1FY0Zkcxz6p1bln22DjrwadVKP8/48PEvSICmxSlKicaR+ajgL5ZoOB5mgpolvZc72p7V3K1Ueh4O7dmRiTAzt5rIkvx8OHRWmxtBxuLOwNTO+5cvvDbVjpgfqcyQKBgQD0hQAWJuWuFbk41ND958txuCoR7zCoB/OK/sSVVsFFLIuaHrFD2mVnQJk/5m9VF0FHnOpBjKn0dElLmw+LWQFIlvL+J+VVU2rxSuE2aBm8x7e4F6NaF7RK86ugOhNm/XL6jCY6J1BKXljQ2v8C7ESpnQVULntF2xksqxyY61kj1QKBgQDxCpYXMKW/tDzgYnCWdvdVhk2ARKfhKBmbwJxXpHyXziQiZtANBmvNCOpEkkV6MA0uFU/2OqA8Cz3hiLxTSEni+nx3mC9nHntGA8cIWYbYACAj1c0NviQ1iNcNTIHx1vyvkQlcVc4nqK8V+d/88TEHEiUYadbJJIhsWnmmVOawJQKBgG8WVXm65jH2sJV/KguQWT8q2gIX1tUf96c4I3ttVJTmre2w7/vRpqwIDxeWyxGvZPrx8QMisrvacMomgiNeplSiL3cEDQ58vWMuD682ECtR2MeMBayShFhg56H9gH8Tuj7VmTBmV/XRcyw/sgdT68XbDma2T07nQUKn4nAey/qZAoGAHzQjofTmQB7xEosr0A6ujh/IwKYipX8vcX5Jvv7IMk65VsrAfC8snWpeCWp2HA9EZYbUxydnvt4lsKCm4JEnH38VxdWprUvA4ZtzlJ0iW6wIfRscZH8M6PFCBbK1z7zpEUFRWOayvWeU4t9qI7CFjEjJDJQG/hsAniZIQUQUaRECgYBsuKhVo01nmRmrhqzWGbTw3gFyEHbaaUGjRlVz/9D23iiOgWMq5H2wN++70RVdMdsV1MLWYAaSWWWrfQmI3sIC+f14ozQw3jhaxFfND9IA44yzLpSU1+BwrVniPW0OchZzXskylRKsqhhkP9cHn3Z/RMD/d/LTLDNvHcaULQz3SQ=="
+
+          # 2. FORCE INJECT ke SDK (Bypass config)
+          find vendor/danaid -name "Config.php" -exec sed -i "s|get('privateKeyPath')|'$RAW_KEY'|g" {} +
+          find vendor/danaid -name "Config.php" -exec sed -i "s|get('merchantId')|'$MERCHANT_ID'|g" {} +
+          find vendor/danaid -name "Config.php" -exec sed -i "s|get('clientId')|'$CLIENT_ID'|g" {} +
+          find vendor/danaid -name "Config.php" -exec sed -i "s|get('clientSecret')|'$CLIENT_SECRET'|g" {} +
+
+          # 3. Setup Mock Webhook Lokal (Untuk Skenario Notify)
+          TEST_PHP_DIR=$(find . -type d -name "php" | grep "test" | head -n 1)
+          cat <<EOF > "$TEST_PHP_DIR/notify.php"
+          <?php
+          \$input = json_decode(file_get_contents('php://input'), true);
+          header('Content-Type: application/json');
+          // Jika simulasi error diminta oleh test, ganti code-nya
+          echo json_encode(["responseCode" => "2005600", "responseMessage" => "Successful"]);
+          EOF
+          
+          # Jalankan server internal PHP untuk Webhook
+          php -S localhost:8080 -t "$TEST_PHP_DIR" > /dev/null 2>&1 &
+          
+          # 4. Inject ENV untuk Runner
+          echo "PRIVATE_KEY=$RAW_KEY" >> $GITHUB_ENV
+          echo "MERCHANT_ID=$MERCHANT_ID" >> $GITHUB_ENV
+          echo "CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "X_PARTNER_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+          echo "ENV_TYPE=sandbox" >> $GITHUB_ENV
+          echo "NOTIFY_URL=http://localhost:8080/notify.php" >> $GITHUB_ENV
+
       - name: Run UAT Tests
         env:
           DISPLAY: :99
         run: |
-          # Jalankan Xvfb
           Xvfb :99 -screen 0 1920x1080x24 &
           sleep 3
           
-          # Cari lokasi run-test.sh secara otomatis di seluruh repo
-          SCRIPT_FULL_PATH=$(find . -name "run-test.sh" | head -n 1)
-          
-          if [ -z "$SCRIPT_FULL_PATH" ]; then
-            echo "❌ ERROR: run-test.sh tidak ditemukan!"
-            find . -maxdepth 4 -not -path '*/.*'
-            exit 1
-          fi
-          
-          SCRIPT_DIR=$(dirname "$SCRIPT_FULL_PATH")
-          echo "✅ Script ditemukan di: $SCRIPT_FULL_PATH"
-          
-          cd "$SCRIPT_DIR"
+          SCRIPT_PATH=$(find . -name "run-test.sh" | head -n 1)
+          cd "$(dirname "$SCRIPT_PATH")"
           chmod +x run-test.sh
           
-          # Jalankan test
+          # Eksekusi SEMUA test (Payment Gateway & Notification)
           sudo -E ./run-test.sh php payment_gateway
+          sudo -E ./run-test.sh php notification
