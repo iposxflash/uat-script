@@ -32,10 +32,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install System Dependencies (Ubuntu 24.04 Fix)
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          # Fix: libasound2 diganti libasound2t64, libgconf-2-4 dihapus (sudah obselete)
           sudo apt-get install -y google-chrome-stable xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2t64
 
       - name: Install PHP Dependencies
@@ -45,21 +44,41 @@ jobs:
             composer install --no-interaction --prefer-dist
           fi
 
-      - name: Prepare Environment File
+      - name: Prepare Keys and Environment
         run: |
-          rm -f .env
-          
-          # 1. Buat Private Key
-          echo "-----BEGIN RSA PRIVATE KEY-----" > priv.key
-          echo "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDmO1Gi7/L7e+snUr21ik0UAvfN6ypBNqG8yd76TpZKU+F61zgxFJXD528zyXllKGUylTL7wp4O02mImWjRF3s2/tUkg/y03S3u2F1zIwf6gl8Sh4A1syq1SnNBuw/r5MF2z5yEiVDLMrZkzS8liAMLoPHlxRNK9ax8Z6x0XkrXGk/mmXNW1kzBszUOaAo9bg2gYbLhxgmWj+33atef6FcnnTl5DHwG5ftcyI6n0G6gw5J01nib4qtcJp0a2/oeL3VD/OyPhcuLa4K83ERs2e+6jsXtmYMnjqbSFoLZjkkCmNyO21vwtAQEd0oqgEY13TH11lJrHCdoeSmf3t1h4p3JAgMBAAECggEAIkDoE/RcM9NLeLXEONrDPft1D+NxjXNJ2/My5A3GKXfSX7rehtrXr2Zi8pMCpyy75asyAygA6RbGKEcew6EZOWTvpDeo5OXVXCg/uw4WtUwpRfH3/sVR0NgrTre8li2aJQmdcVCWvyyj21p1rcFPJq9C3hsUlD359CZej4+p1dexlpGLnABxLO2rUzbLKZ5U4eN6CjaAOIAzkKBVEzuz4rRQt1FY0Zkcxz6p1bln22DjrwadVKP8/48PEvSICmxSlKicaR+ajgL5ZoOB5mgpolvZc72p7V3K1Ueh4O7dmRiTAzt5rIkvx8OHRWmxtBxuLOwNTO+5cvvDbVjpgfqcyQKBgQD0hQAWJuWuFbk41ND958txuCoR7zCoB/OK/sSVVsFFLIuaHrFD2mVnQJk/5m9VF0FHnOpBjKn0dElLmw+LWQFIlvL+J+VVU2rxSuE2aBm8x7e4F6NaF7RK86ugOhNm/XL6jCY6J1BKXljQ2v8C7ESpnQVULntF2xksqxyY61kj1QKBgQDxCpYXMKW/tDzgYnCWdvdVhk2ARKfhKBmbwJxXpHyXziQiZtANBmvNCOpEkkV6MA0uFU/2OqA8Cz3hiLxTSEni+nx3mC9nHntGA8cIWYbYACAj1c0NviQ1iNcNTIHx1vyvkQlcVc4nqK8V+d/88TEHEiUYadbJJIhsWnmmVOawJQKBgG8WVXm65jH2sJV/KguQWT8q2gIX1tUf96c4I3ttVJTmre2w7/vRpqwIDxeWyxGvZPrx8QMisrvacMomgiNeplSiL3cEDQ58vWMuD682ECtR2MeMBayShFhg56H9gH8Tuj7VmTBmV/XRcyw/sgdT68XbDma2T07nQUKn4nAey/qZAoGAHzQjofTmQB7xEosr0A6ujh/IwKYipX8vcX5Jvv7IMk65VsrAfC8snWpeCWp2HA9EZYbUxydnvt4lsKCm4JEnH38VxdWprUvA4ZtzlJ0iW6wIfRscZH8M6PFCBbK1z7zpEUFRWOayvWeU4t9qI7CFjEjJDJQG/hsAniZIQUQUaRECgYBsuKhVo01nmRmrhqzWGbTw3gFyEHbaaUGjRlVz/9D23iiOgWMq5H2wN++70RVdMdsV1MLWYAaSWWWrfQmI3sIC+f14ozQw3jhaxFfND9IA44yzLpSU1+BwrVniPW0OchZzXskylRKsqhhkP9cHn3Z/RMD/d/LTLDNvHcaULQz3SQ==" >> priv.key
-          echo "-----END RSA PRIVATE KEY-----" >> priv.key
+          # 1. Buat file Private Key asli (Penting: Tanpa modifikasi sed)
+          cat <<EOF > private_key.pem
+          -----BEGIN RSA PRIVATE KEY-----
+          MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDmO1Gi7/L7e+sn
+          Ur21ik0UAvfN6ypBNqG8yd76TpZKU+F61zgxFJXD528zyXllKGUylTL7wp4O02mI
+          mWjRF3s2/tUkg/y03S3u2F1zIwf6gl8Sh4A1syq1SnNBuw/r5MF2z5yEiVDLMrZk
+          zS8liAMLoPHlxRNK9ax8Z6x0XkrXGk/mmXNW1kzBszUOaAo9bg2gYbLhxgmWj+33
+          atef6FcnnTl5DHwG5ftcyI6n0G6gw5J01nib4qtcJp0a2/oeL3VD/OyPhcuLa4K8
+          3ERs2e+6jsXtmYMnjqbSFoLZjkkCmNyO21vwtAQEd0oqgEY13TH11lJrHCdoeSmf
+          3t1h4p3JAgMBAAECggEAIkDoE/RcM9NLeLXEONrDPft1D+NxjXNJ2/My5A3GKXfS
+          X7rehtrXr2Zi8pMCpyy75asyAygA6RbGKEcew6EZOWTvpDeo5OXVXCg/uw4WtUwp
+          RfH3/sVR0NgrTre8li2aJQmdcVCWvyyj21p1rcFPJq9C3hsUlD359CZej4+p1dex
+          lpGLnABxLO2rUzbLKZ5U4eN6CjaAOIAzkKBVEzuz4rRQt1FY0Zkcxz6p1bln22Dj
+          rwadVKP8/48PEvSICmxSlKicaR+ajgL5ZoOB5mgpolvZc72p7V3K1Ueh4O7dmRiT
+          Azt5rIkvx8OHRWmxtBxuLOwNTO+5cvvDbVjpgfqcyQKBgQD0hQAWJuWuFbk41ND9
+          58txuCoR7zCoB/OK/sSVVsFFLIuaHrFD2mVnQJk/5m9VF0FHnOpBjKn0dElLmw+L
+          WQFIlvL+J+VVU2rxSuE2aBm8x7e4F6NaF7RK86ugOhNm/XL6jCY6J1BKXljQ2v8C
+          7ESpnQVULntF2xksqxyY61kj1QKBgQDxCpYXMKW/tDzgYnCWdvdVhk2ARKfhKBmb
+          wJxXpHyXziQiZtANBmvNCOpEkkV6MA0uFU/2OqA8Cz3hiLxTSEni+nx3mC9nHntG
+          A8cIWYbYACAj1c0NviQ1iNcNTIHx1vyvkQlcVc4nqK8V+d/88TEHEiUYadbJJIhs
+          WnmmVOawJQKBgG8WVXm65jH2sJV/KguQWT8q2gIX1tUf96c4I3ttVJTmre2w7/vR
+          pqwIDxeWyxGvZPrx8QMisrvacMomgiNeplSiL3cEDQ58vWMuD682ECtR2MeMBayS
+          hFhg56H9gH8Tuj7VmTBmV/XRcyw/sgdT68XbDma2T07nQUKn4nAey/qZAoGAHzQj
+          ofTmQB7xEosr0A6ujh/IwKYipX8vcX5Jvv7IMk65VsrAfC8snWpeCWp2HA9EZYbU
+          xydnvt4lsKCm4JEnH38VxdWprUvA4ZtzlJ0iW6wIfRscZH8M6PFCBbK1z7zpEUFR
+          WOayvWeU4t9qI7CFjEjJDJQG/hsAniZIQUQUaRECgYBsuKhVo01nmRmrhqzWGbTw
+          3gFyEHbaaUGjRlVz/9D23iiOgWMq5H2wN++70RVdMdsV1MLWYAaSWWWrfQmI3sIC
+          +f14ozQw3jhaxFfND9IA44yzLpSU1+BwrVniPW0OchZzXskylRKsqhhkP9cHn3Z/
+          RMD/d/LTLDNvHcaULQz3SQ==
+          -----END RSA PRIVATE KEY-----
+          EOF
 
-          # 2. Buat Public Key
-          echo "-----BEGIN PUBLIC KEY-----" > pub.key
-          echo "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5jtRou/y+3vrJ1K9tYpNFAL3zesqQTahvMne+k6WSlPhetc4MRSVw+dvM8l5ZShlMpUy+8KeDtNpiJlo0Rd7Nv7VJIP8tN0t7thdcyMH+oJfEoeANbMqtUpzQbsP6+TBds+chIlQyzK2ZM0vJYgDC6Dx5cUTSvWsfGesdF5K1xpP5plzVtZMwbM1DmgKPW4NoGGy4cYJlo/t92rXn+hXJ505eQx8BuX7XMiOp9BuoMOSdNZ4m+KrXCadGtv6Hi91Q/zsj4XLi2uCvNxEbNnvuo7F7ZmDJ46m0haC2Y5JApjcjttb8LQEBHdKKoBGNd0x9dZSaxwnaHkpn97dYeKdyQIDAQAB" >> pub.key
-          echo "-----END PUBLIC KEY-----" >> pub.key
-
-          # 3. Rakit .env
+          # 2. Buat file .env (Kita arahkan PRIVATE_KEY ke path filenya)
           cat <<EOF > .env
           MERCHANT_ID=216620020014045559303
           X_PARTNER_ID=2026021421181946563086
@@ -67,23 +86,23 @@ jobs:
           CLIENT_SECRET=58439bb51430dd3ea566ae59ff7096d1c8753fe70fa6c4728acbc2bcea2a106e
           ORIGIN=payment.ojgrup.com
           ENV_TYPE=sandbox
-          PRIVATE_KEY="$(cat priv.key | sed ':a;N;$!ba;s/\n/\\n/g')"
-          DANA_PUBLIC_KEY="$(cat pub.key | sed ':a;N;$!ba;s/\n/\\n/g')"
+          PRIVATE_KEY=$(pwd)/private_key.pem
+          DANA_PUBLIC_KEY="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5jtRou/y+3vrJ1K9tYpNFAL3zesqQTahvMne+k6WSlPhetc4MRSVw+dvM8l5ZShlMpUy+8KeDtNpiJlo0Rd7Nv7VJIP8tN0t7thdcyMH+oJfEoeANbMqtUpzQbsP6+TBds+chIlQyzK2ZM0vJYgDC6Dx5cUTSvWsfGesdF5K1xpP5plzVtZMwbM1DmgKPW4NoGGy4cYJlo/t92rXn+hXJ505eQx8BuX7XMiOp9BuoMOSdNZ4m+KrXCadGtv6Hi91Q/zsj4XLi2uCvNxEbNnvuo7F7ZmDJ46m0haC2Y5JApjcjttb8LQEBHdKKoBGNd0x9dZSaxwnaHkpn97dYeKdyQIDAQAB"
           EOF
+          
+          chmod 600 private_key.pem
           chmod +x run-test.sh
 
       - name: Run DANA UAT with Virtual Display
         run: |
-          # Jalankan Xvfb (Virtual Monitor)
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           export CHROME_BIN=/usr/bin/google-chrome
           
-          # Tambahkan opsi chrome untuk CI
-          export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --window-size=1920,1080"
+          # Jeda agar Xvfb siap
+          sleep 15
           
-          sleep 10
-          
+          # Jalankan test dengan environment yang sudah kita set di .env
           if [ -z "${{ github.event.inputs.case_name }}" ]; then
             sudo -E sh run-test.sh php ${{ github.event.inputs.solution }}
           else
