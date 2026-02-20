@@ -1,0 +1,56 @@
+name: Manual UAT Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      solution:
+        description: 'Business Solution (contoh: payment_gateway)'
+        required: true
+        default: 'payment_gateway'
+      case_name:
+        description: 'API Case Name (opsional, contoh: create_order_test)'
+        required: false
+
+jobs:
+  execute-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+          extensions: zip, curl, mbstring
+
+      - name: Setup Java (For Selenium)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install PHP Dependencies
+        run: |
+          if [ -d "test/php" ]; then
+            cd test/php
+            composer install --no-interaction --prefer-dist
+          fi
+
+      - name: Prepare Environment
+        run: |
+          # Copy env dari example supaya script tidak error
+          cp .env-example .env
+          # Jika lo punya data asli, script ini akan memakai .env ini
+          chmod +x run-test.sh
+
+      - name: Run DANA UAT Script
+        run: |
+          # Format: sh run-test.sh <language> <solution> <case_name>
+          if [ -z "${{ github.event.inputs.case_name }}" ]; then
+            sh run-test.sh php ${{ github.event.inputs.solution }}
+          else
+            sh run-test.sh php ${{ github.event.inputs.solution }} ${{ github.event.inputs.case_name }}
+          fi
