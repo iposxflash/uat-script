@@ -44,10 +44,10 @@ jobs:
             composer install --no-interaction --prefer-dist
           fi
 
-      - name: Prepare Keys and Environment
+      - name: Create Private Key File
         run: |
-          # 1. Buat file Private Key asli (Penting: Tanpa modifikasi sed)
-          cat <<EOF > private_key.pem
+          # Menggunakan format heredoc yang sangat ketat untuk menjaga baris baru
+          cat << 'EOF' > private_key.pem
           -----BEGIN RSA PRIVATE KEY-----
           MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDmO1Gi7/L7e+sn
           Ur21ik0UAvfN6ypBNqG8yd76TpZKU+F61zgxFJXD528zyXllKGUylTL7wp4O02mI
@@ -77,8 +77,12 @@ jobs:
           RMD/d/LTLDNvHcaULQz3SQ==
           -----END RSA PRIVATE KEY-----
           EOF
+          chmod 600 private_key.pem
 
-          # 2. Buat file .env (Kita arahkan PRIVATE_KEY ke path filenya)
+      - name: Prepare Environment File
+        run: |
+          # Masukkan path absolut ke .env
+          PK_PATH=$(pwd)/private_key.pem
           cat <<EOF > .env
           MERCHANT_ID=216620020014045559303
           X_PARTNER_ID=2026021421181946563086
@@ -86,23 +90,24 @@ jobs:
           CLIENT_SECRET=58439bb51430dd3ea566ae59ff7096d1c8753fe70fa6c4728acbc2bcea2a106e
           ORIGIN=payment.ojgrup.com
           ENV_TYPE=sandbox
-          PRIVATE_KEY=$(pwd)/private_key.pem
+          PRIVATE_KEY=$PK_PATH
           DANA_PUBLIC_KEY="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5jtRou/y+3vrJ1K9tYpNFAL3zesqQTahvMne+k6WSlPhetc4MRSVw+dvM8l5ZShlMpUy+8KeDtNpiJlo0Rd7Nv7VJIP8tN0t7thdcyMH+oJfEoeANbMqtUpzQbsP6+TBds+chIlQyzK2ZM0vJYgDC6Dx5cUTSvWsfGesdF5K1xpP5plzVtZMwbM1DmgKPW4NoGGy4cYJlo/t92rXn+hXJ505eQx8BuX7XMiOp9BuoMOSdNZ4m+KrXCadGtv6Hi91Q/zsj4XLi2uCvNxEbNnvuo7F7ZmDJ46m0haC2Y5JApjcjttb8LQEBHdKKoBGNd0x9dZSaxwnaHkpn97dYeKdyQIDAQAB"
           EOF
-          
-          chmod 600 private_key.pem
           chmod +x run-test.sh
 
-      - name: Run DANA UAT with Virtual Display
+      - name: Run DANA UAT
         run: |
+          # Jalankan monitor virtual
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
-          export CHROME_BIN=/usr/bin/google-chrome
           
-          # Jeda agar Xvfb siap
+          # Beri sedikit jeda
           sleep 15
           
-          # Jalankan test dengan environment yang sudah kita set di .env
+          # Cek file kunci sebelum running (untuk debug)
+          ls -l private_key.pem
+          
+          # Jalankan test. sudo -E sangat penting untuk bawa variabel DISPLAY
           if [ -z "${{ github.event.inputs.case_name }}" ]; then
             sudo -E sh run-test.sh php ${{ github.event.inputs.solution }}
           else
