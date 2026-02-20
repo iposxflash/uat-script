@@ -1,18 +1,13 @@
-name: Manual UAT Runner
+name: DANA UAT Automation
 
 on:
-  workflow_dispatch:
-    inputs:
-      solution:
-        description: 'Business Solution (contoh: payment_gateway)'
-        required: true
-        default: 'payment_gateway'
-      case_name:
-        description: 'API Case Name (opsional, contoh: create_order_test)'
-        required: false
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  execute-test:
+  uat-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,31 +18,18 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, curl
           tools: composer:v2
-          extensions: zip, curl, mbstring, openssl
 
-      - name: Setup Java (For Selenium)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install System Dependencies
+      - name: Install Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2t64
+          cd test/php
+          composer install --no-interaction --prefer-dist
 
-      - name: Install PHP Dependencies
+      - name: Setup Credentials (Hard-Fix)
         run: |
-          if [ -d "test/php" ]; then
-            cd test/php
-            composer install --no-interaction --prefer-dist
-          fi
-
-      - name: Setup Credentials with External Shop ID
-        run: |
-          # 1. Buat Private Key (Format Asli)
-          cat << 'EOF' > private_key.pem
+          # 1. Buat Private Key di Root
+          cat <<EOF > private_key.pem
           -----BEGIN RSA PRIVATE KEY-----
           MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDmO1Gi7/L7e+sn
           Ur21ik0UAvfN6ypBNqG8yd76TpZKU+F61zgxFJXD528zyXllKGUylTL7wp4O02mI
@@ -78,8 +60,10 @@ jobs:
           -----END RSA PRIVATE KEY-----
           EOF
 
-          # 2. Buat file .env (Root & Subfolder)
-          # Menambahkan EXTERNAL_SHOP_ID yang lo kasih tadi
+          # 2. Definisikan Path Absolut
+          ABS_PATH=$(pwd)
+
+          # 3. Buat file .env (Menggabungkan format SDK DANA)
           cat <<EOF > .env
           MERCHANT_ID=216620020014045559303
           X_PARTNER_ID=2026021421181946563086
@@ -88,28 +72,31 @@ jobs:
           EXTERNAL_SHOP_ID=216660000003269467312
           ORIGIN=payment.ojgrup.com
           ENV_TYPE=sandbox
-          PRIVATE_KEY_PATH=$(pwd)/private_key.pem
-          DANA_PUBLIC_KEY="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5jtRou/y+3vrJ1K9tYpNFAL3zesqQTahvMne+k6WSlPhetc4MRSVw+dvM8l5ZShlMpUy+8KeDtNpiJlo0Rd7Nv7VJIP8tN0t7thdcyMH+oJfEoeANbMqtUpzQbsP6+TBds+chIlQyzK2ZM0vJYgDC6Dx5cUTSvWsfGesdF5K1xpP5plzVtZMwbM1DmgKPW4NoGGy4cYJlo/t92rXn+hXJ505eQx8BuX7XMiOp9BuoMOSdNZ4m+KrXCadGtv6Hi91Q/zsj4XLi2uCvNxEbNnvuo7F7ZmDJ46m0haC2Y5JApjcjttb8LQEBHdKKoBGNd0x9dZSaxwnaHkpn97dYeKdyQIDAQAB"
+          PRIVATE_KEY_PATH=$ABS_PATH/private_key.pem
           EOF
 
-          # Copy ke folder kerja PHP
-          mkdir -p test/php
+          # 4. Copy ke folder tempat eksekusi PHPUnit
           cp .env test/php/.env
           cp private_key.pem test/php/private_key.pem
-          
-          # Pastikan path di subfolder juga mengarah ke file yang benar
-          sed -i "s|PRIVATE_KEY_PATH=.*|PRIVATE_KEY_PATH=$(pwd)/test/php/private_key.pem|g" test/php/.env
 
-          chmod +x run-test.sh
-
-      - name: Run DANA UAT
+      - name: Install System Dependencies (Chrome & Java)
         run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          # Chromium akan otomatis terinstall via snap di Ubuntu 24.04
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          # Install Java untuk Selenium (Jika run-test.sh membutuhkannya)
+          sudo apt-get install -y default-jre
+
+      - name: Run UAT Tests
+        env:
+          DISPLAY: :99
+        run: |
+          # Jalankan Xvfb di background
           Xvfb :99 -screen 0 1920x1080x24 &
-          export DISPLAY=:99
           sleep 3
           
-          if [ -z "${{ github.event.inputs.case_name }}" ]; then
-            sudo -E sh run-test.sh php ${{ github.event.inputs.solution }}
-          else
-            sudo -E sh run-test.sh php ${{ github.event.inputs.solution }} ${{ github.event.inputs.case_name }}
-          fi
+          # Masuk ke direktori test dan jalankan script
+          # Kita gunakan sudo -E untuk mempertahankan environment variable
+          cd test/php
+          sudo -E sh run-test.sh php payment_gateway
