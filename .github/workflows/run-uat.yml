@@ -32,11 +32,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install System Dependencies (Chrome Stability Fix)
+      - name: Install System Dependencies (Ubuntu 24.04 Fix)
         run: |
           sudo apt-get update
-          # Menghapus libgconf karena sudah tidak ada di Ubuntu 24.04, ganti dengan library modern
-          sudo apt-get install -y google-chrome-stable xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
+          # Fix: libasound2 diganti libasound2t64, libgconf-2-4 dihapus (sudah obselete)
+          sudo apt-get install -y google-chrome-stable xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2t64
 
       - name: Install PHP Dependencies
         run: |
@@ -79,13 +79,11 @@ jobs:
           export DISPLAY=:99
           export CHROME_BIN=/usr/bin/google-chrome
           
-          # Tambahkan opsi chrome untuk stabilitas di environment CI
+          # Tambahkan opsi chrome untuk CI
           export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --window-size=1920,1080"
           
-          # Jeda agar Xvfb dan Server DANA siap
           sleep 10
           
-          # Gunakan sudo -E untuk mempertahankan environment (DISPLAY, etc)
           if [ -z "${{ github.event.inputs.case_name }}" ]; then
             sudo -E sh run-test.sh php ${{ github.event.inputs.solution }}
           else
