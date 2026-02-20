@@ -44,9 +44,9 @@ jobs:
             composer install --no-interaction --prefer-dist
           fi
 
-      - name: Create Private Key File
+      - name: Setup Credentials with External Shop ID
         run: |
-          # Menggunakan format heredoc yang sangat ketat untuk menjaga baris baru
+          # 1. Buat Private Key (Format Asli)
           cat << 'EOF' > private_key.pem
           -----BEGIN RSA PRIVATE KEY-----
           MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDmO1Gi7/L7e+sn
@@ -77,37 +77,37 @@ jobs:
           RMD/d/LTLDNvHcaULQz3SQ==
           -----END RSA PRIVATE KEY-----
           EOF
-          chmod 600 private_key.pem
 
-      - name: Prepare Environment File
-        run: |
-          # Masukkan path absolut ke .env
-          PK_PATH=$(pwd)/private_key.pem
+          # 2. Buat file .env (Root & Subfolder)
+          # Menambahkan EXTERNAL_SHOP_ID yang lo kasih tadi
           cat <<EOF > .env
           MERCHANT_ID=216620020014045559303
           X_PARTNER_ID=2026021421181946563086
           CLIENT_ID=2026021421181946563086
           CLIENT_SECRET=58439bb51430dd3ea566ae59ff7096d1c8753fe70fa6c4728acbc2bcea2a106e
+          EXTERNAL_SHOP_ID=216660000003269467312
           ORIGIN=payment.ojgrup.com
           ENV_TYPE=sandbox
-          PRIVATE_KEY=$PK_PATH
+          PRIVATE_KEY_PATH=$(pwd)/private_key.pem
           DANA_PUBLIC_KEY="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5jtRou/y+3vrJ1K9tYpNFAL3zesqQTahvMne+k6WSlPhetc4MRSVw+dvM8l5ZShlMpUy+8KeDtNpiJlo0Rd7Nv7VJIP8tN0t7thdcyMH+oJfEoeANbMqtUpzQbsP6+TBds+chIlQyzK2ZM0vJYgDC6Dx5cUTSvWsfGesdF5K1xpP5plzVtZMwbM1DmgKPW4NoGGy4cYJlo/t92rXn+hXJ505eQx8BuX7XMiOp9BuoMOSdNZ4m+KrXCadGtv6Hi91Q/zsj4XLi2uCvNxEbNnvuo7F7ZmDJ46m0haC2Y5JApjcjttb8LQEBHdKKoBGNd0x9dZSaxwnaHkpn97dYeKdyQIDAQAB"
           EOF
+
+          # Copy ke folder kerja PHP
+          mkdir -p test/php
+          cp .env test/php/.env
+          cp private_key.pem test/php/private_key.pem
+          
+          # Pastikan path di subfolder juga mengarah ke file yang benar
+          sed -i "s|PRIVATE_KEY_PATH=.*|PRIVATE_KEY_PATH=$(pwd)/test/php/private_key.pem|g" test/php/.env
+
           chmod +x run-test.sh
 
       - name: Run DANA UAT
         run: |
-          # Jalankan monitor virtual
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
+          sleep 3
           
-          # Beri sedikit jeda
-          sleep 15
-          
-          # Cek file kunci sebelum running (untuk debug)
-          ls -l private_key.pem
-          
-          # Jalankan test. sudo -E sangat penting untuk bawa variabel DISPLAY
           if [ -z "${{ github.event.inputs.case_name }}" ]; then
             sudo -E sh run-test.sh php ${{ github.event.inputs.solution }}
           else
