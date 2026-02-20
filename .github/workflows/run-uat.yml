@@ -3,8 +3,7 @@ name: DANA UAT Automation
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch: # Memungkinkan lo jalanin manual dari tab Actions
 
 jobs:
   uat-test:
@@ -21,16 +20,16 @@ jobs:
           extensions: mbstring, xml, ctype, iconv, curl
           tools: composer:v2
 
-      - name: Install System Dependencies (Chrome, Java, Xvfb)
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb chromium-browser chromium-chromedriver default-jre
-          # Memastikan driver chromium tersedia di path sistem
+          # Link chromedriver agar bisa dipanggil langsung oleh PHP
           sudo ln -s /usr/lib/chromium-browser/chromedriver /usr/local/bin/chromedriver || true
 
       - name: Setup Credentials & Environment
         run: |
-          # 1. Buat file Private Key
+          # 1. Buat Private Key (Pastikan ini sesuai dengan key yang lo download dari dashboard)
           cat <<EOF > private_key.pem
           -----BEGIN RSA PRIVATE KEY-----
           MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDmO1Gi7/L7e+sn
@@ -62,15 +61,15 @@ jobs:
           -----END RSA PRIVATE KEY-----
           EOF
 
-          # 2. Definisikan Path Absolut
+          # 2. Definisikan Path Absolut & Data dari Screenshot
           ABS_PATH=$(pwd)
-
-          # 3. Buat file .env sesuai standar DANA UAT
+          
+          # 3. Buat file .env
           cat <<EOF > .env
           MERCHANT_ID=216620020014045559303
           X_PARTNER_ID=2026021421181946563086
           CLIENT_ID=2026021421181946563086
-          CLIENT_SECRET=58439bb51430dd3ea566ae59ff7096d1c8753fe70fa6c4728acbc2bcea2a106e
+          CLIENT_SECRET=PASTI_ADA_DI_DOWNLOAD_JSON_LO # Jangan lupa ganti jika beda
           EXTERNAL_SHOP_ID=216660000003269467312
           ORIGIN=payment.ojgrup.com
           ENV_TYPE=sandbox
@@ -78,40 +77,38 @@ jobs:
           SELENIUM_URL=http://localhost:4444/wd/hub
           EOF
 
-          # 4. Copy ke folder test (Cari folder test secara dinamis)
-          TEST_DIR=\$(find . -type d -name "php" | grep "test" | head -n 1)
-          if [ ! -z "\$TEST_DIR" ]; then
-            cp .env "\$TEST_DIR/.env"
-            cp private_key.pem "\$TEST_DIR/private_key.pem"
-            echo "✅ Config copied to \$TEST_DIR"
-          fi
+          # 4. Copy ke semua subfolder test yang mungkin diakses
+          find . -type d -name "php" -exec cp .env {}/.env \;
+          find . -type d -name "php" -exec cp private_key.pem {}/private_key.pem \;
 
       - name: Install Composer Dependencies
         run: |
-          TEST_DIR=$(find . -type d -name "php" | grep "test" | head -n 1)
-          cd "$TEST_DIR"
+          TEST_PHP_DIR=$(find . -type d -name "php" | grep "test" | head -n 1)
+          cd "$TEST_PHP_DIR"
           composer install --no-interaction --prefer-dist
 
       - name: Run UAT Tests
         env:
           DISPLAY: :99
         run: |
-          # 1. Jalankan Xvfb (Virtual Display)
+          # Jalankan Xvfb
           Xvfb :99 -screen 0 1920x1080x24 &
           sleep 3
           
-          # 2. Cari run-test.sh secara dinamis
-          SCRIPT_PATH=$(find . -name "run-test.sh" | head -n 1)
-          if [ -z "$SCRIPT_PATH" ]; then
-            echo "❌ Error: run-test.sh tidak ditemukan!"
+          # Cari lokasi run-test.sh secara otomatis di seluruh repo
+          SCRIPT_FULL_PATH=$(find . -name "run-test.sh" | head -n 1)
+          
+          if [ -z "$SCRIPT_FULL_PATH" ]; then
+            echo "❌ ERROR: run-test.sh tidak ditemukan!"
+            find . -maxdepth 4 -not -path '*/.*'
             exit 1
           fi
           
-          SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
-          echo "🚀 Menjalankan script di: $SCRIPT_PATH"
+          SCRIPT_DIR=$(dirname "$SCRIPT_FULL_PATH")
+          echo "✅ Script ditemukan di: $SCRIPT_FULL_PATH"
           
-          # 3. Eksekusi
           cd "$SCRIPT_DIR"
           chmod +x run-test.sh
-          # Gunakan sudo -E agar environment variable (DISPLAY, dll) terbaca
+          
+          # Jalankan test
           sudo -E ./run-test.sh php payment_gateway
