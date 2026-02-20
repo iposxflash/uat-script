@@ -26,10 +26,17 @@ jobs:
           tools: composer:v2
           extensions: zip, curl, mbstring, openssl
 
-      - name: Install System Dependencies (Chrome Fix)
+      - name: Setup Java (For Selenium)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install System Dependencies (Chrome Stability Fix)
         run: |
           sudo apt-get update
-          sudo apt-get install -y google-chrome-stable xvfb libnss3 libgconf-2-4
+          # Menghapus libgconf karena sudah tidak ada di Ubuntu 24.04, ganti dengan library modern
+          sudo apt-get install -y google-chrome-stable xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
 
       - name: Install PHP Dependencies
         run: |
@@ -41,13 +48,18 @@ jobs:
       - name: Prepare Environment File
         run: |
           rm -f .env
+          
+          # 1. Buat Private Key
           echo "-----BEGIN RSA PRIVATE KEY-----" > priv.key
           echo "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDmO1Gi7/L7e+snUr21ik0UAvfN6ypBNqG8yd76TpZKU+F61zgxFJXD528zyXllKGUylTL7wp4O02mImWjRF3s2/tUkg/y03S3u2F1zIwf6gl8Sh4A1syq1SnNBuw/r5MF2z5yEiVDLMrZkzS8liAMLoPHlxRNK9ax8Z6x0XkrXGk/mmXNW1kzBszUOaAo9bg2gYbLhxgmWj+33atef6FcnnTl5DHwG5ftcyI6n0G6gw5J01nib4qtcJp0a2/oeL3VD/OyPhcuLa4K83ERs2e+6jsXtmYMnjqbSFoLZjkkCmNyO21vwtAQEd0oqgEY13TH11lJrHCdoeSmf3t1h4p3JAgMBAAECggEAIkDoE/RcM9NLeLXEONrDPft1D+NxjXNJ2/My5A3GKXfSX7rehtrXr2Zi8pMCpyy75asyAygA6RbGKEcew6EZOWTvpDeo5OXVXCg/uw4WtUwpRfH3/sVR0NgrTre8li2aJQmdcVCWvyyj21p1rcFPJq9C3hsUlD359CZej4+p1dexlpGLnABxLO2rUzbLKZ5U4eN6CjaAOIAzkKBVEzuz4rRQt1FY0Zkcxz6p1bln22DjrwadVKP8/48PEvSICmxSlKicaR+ajgL5ZoOB5mgpolvZc72p7V3K1Ueh4O7dmRiTAzt5rIkvx8OHRWmxtBxuLOwNTO+5cvvDbVjpgfqcyQKBgQD0hQAWJuWuFbk41ND958txuCoR7zCoB/OK/sSVVsFFLIuaHrFD2mVnQJk/5m9VF0FHnOpBjKn0dElLmw+LWQFIlvL+J+VVU2rxSuE2aBm8x7e4F6NaF7RK86ugOhNm/XL6jCY6J1BKXljQ2v8C7ESpnQVULntF2xksqxyY61kj1QKBgQDxCpYXMKW/tDzgYnCWdvdVhk2ARKfhKBmbwJxXpHyXziQiZtANBmvNCOpEkkV6MA0uFU/2OqA8Cz3hiLxTSEni+nx3mC9nHntGA8cIWYbYACAj1c0NviQ1iNcNTIHx1vyvkQlcVc4nqK8V+d/88TEHEiUYadbJJIhsWnmmVOawJQKBgG8WVXm65jH2sJV/KguQWT8q2gIX1tUf96c4I3ttVJTmre2w7/vRpqwIDxeWyxGvZPrx8QMisrvacMomgiNeplSiL3cEDQ58vWMuD682ECtR2MeMBayShFhg56H9gH8Tuj7VmTBmV/XRcyw/sgdT68XbDma2T07nQUKn4nAey/qZAoGAHzQjofTmQB7xEosr0A6ujh/IwKYipX8vcX5Jvv7IMk65VsrAfC8snWpeCWp2HA9EZYbUxydnvt4lsKCm4JEnH38VxdWprUvA4ZtzlJ0iW6wIfRscZH8M6PFCBbK1z7zpEUFRWOayvWeU4t9qI7CFjEjJDJQG/hsAniZIQUQUaRECgYBsuKhVo01nmRmrhqzWGbTw3gFyEHbaaUGjRlVz/9D23iiOgWMq5H2wN++70RVdMdsV1MLWYAaSWWWrfQmI3sIC+f14ozQw3jhaxFfND9IA44yzLpSU1+BwrVniPW0OchZzXskylRKsqhhkP9cHn3Z/RMD/d/LTLDNvHcaULQz3SQ==" >> priv.key
           echo "-----END RSA PRIVATE KEY-----" >> priv.key
+
+          # 2. Buat Public Key
           echo "-----BEGIN PUBLIC KEY-----" > pub.key
           echo "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5jtRou/y+3vrJ1K9tYpNFAL3zesqQTahvMne+k6WSlPhetc4MRSVw+dvM8l5ZShlMpUy+8KeDtNpiJlo0Rd7Nv7VJIP8tN0t7thdcyMH+oJfEoeANbMqtUpzQbsP6+TBds+chIlQyzK2ZM0vJYgDC6Dx5cUTSvWsfGesdF5K1xpP5plzVtZMwbM1DmgKPW4NoGGy4cYJlo/t92rXn+hXJ505eQx8BuX7XMiOp9BuoMOSdNZ4m+KrXCadGtv6Hi91Q/zsj4XLi2uCvNxEbNnvuo7F7ZmDJ46m0haC2Y5JApjcjttb8LQEBHdKKoBGNd0x9dZSaxwnaHkpn97dYeKdyQIDAQAB" >> pub.key
           echo "-----END PUBLIC KEY-----" >> pub.key
 
+          # 3. Rakit .env
           cat <<EOF > .env
           MERCHANT_ID=216620020014045559303
           X_PARTNER_ID=2026021421181946563086
@@ -62,14 +74,18 @@ jobs:
 
       - name: Run DANA UAT with Virtual Display
         run: |
-          # Jalankan Virtual Display (biar Chrome ngerasa ada layar)
+          # Jalankan Xvfb (Virtual Monitor)
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           export CHROME_BIN=/usr/bin/google-chrome
           
-          # Kasih waktu buat Xvfb nyala
-          sleep 5
+          # Tambahkan opsi chrome untuk stabilitas di environment CI
+          export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --window-size=1920,1080"
           
+          # Jeda agar Xvfb dan Server DANA siap
+          sleep 10
+          
+          # Gunakan sudo -E untuk mempertahankan environment (DISPLAY, etc)
           if [ -z "${{ github.event.inputs.case_name }}" ]; then
             sudo -E sh run-test.sh php ${{ github.event.inputs.solution }}
           else
